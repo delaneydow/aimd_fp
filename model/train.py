@@ -1,43 +1,63 @@
-# train.py
 import torch
-import torch.nn as nn
-import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
-from dataset import SliceDataset
-from model import UNet2D
-import numpy as np
+from dataset import LGGDataset
+from model import TinyUNet
+from losses import dice_loss
+import kagglehub
 
-DATA_ROOT = "PATH_TO_DATASET"
+# -----------------------
+# Dataset
+# -----------------------
+path = kagglehub.dataset_download("mateuszbuda/lgg-mri-segmentation")
+data_root = f"{path}/kaggle_3m"
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-dataset = SliceDataset(DATA_ROOT)
-train_ds, val_ds = random_split(dataset, [int(0.8*len(dataset)), len(dataset)-int(0.8*len(dataset))])
+dataset = LGGDataset(data_root, limit=200)  # keep small
+train_size = int(0.8 * len(dataset))
+val_size = len(dataset) - train_size
+train_ds, val_ds = random_split(dataset, [train_size, val_size])
 
 train_loader = DataLoader(train_ds, batch_size=1, shuffle=True)
 val_loader = DataLoader(val_ds, batch_size=1)
 
-model = UNet2D().to(device)
-loss_fn = nn.BCELoss()
-opt = optim.Adam(model.parameters(), lr=1e-3)
+# -----------------------
+# Model
+# -----------------------
+device = "cpu"
+model = TinyUNet().to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-for epoch in range(5):
+# -----------------------
+# Training
+# -----------------------
+epochs = 10
+for epoch in range(epochs):
     model.train()
-    for img, mask in train_loader:
-        img, mask = img.to(device), mask.to(device)
-        opt.zero_grad()
-        out = model(img)
-        loss = loss_fn(out, mask)
+    total_loss = 0
+
+    for imgs, masks in train_loader:
+        imgs, masks = imgs.to(device), masks.to(device)
+
+        optimizer.zero_grad()
+        outputs = model(imgs)
+        loss = dice_loss(outputs, masks)
         loss.backward()
-        opt.step()
+        optimizer.step()
+
+        total_loss += loss.item()
 
     model.eval()
-    dices = []
-    with torch.no_grad():
-        for img, mask in val_loader:
-            img, mask = img.to(device), mask.to(device)
-            pred = (model(img) > 0.5).float()
-            d = (2*(pred*mask).sum())/(pred.sum()+mask.sum()+1e-6)
-            dices.append(d.item())
+    dice_scores = []
 
-    print(f"Epoch {epoch+1} Dice: {np.mean(dices):.4f}")
+    with torch.no_grad():
+        for imgs, masks in val_loader:
+            outputs = model(imgs)
+            d = 1 - dice_loss(outputs, masks)
+            dice_scores.append(d.item())
+
+    print(
+        f"Epoch {epoch+1}/{epochs} | "
+        f"Train Loss: {total_loss/len(train_loader):.4f} | "
+        f"Val Dice: {sum(dice_scores)/len(dice_scores):.4f}"
+    )
+
+torch.save(model.state_dict(), "tinyunet.pth")
