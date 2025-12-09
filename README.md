@@ -14,16 +14,15 @@ A lightweight classical segmentation pipeline converted to ONNX and quantized to
 ## Sample MRI Dataset Links
 Use any of the following:
 - **TCGA Glioma MRI (Kaggle)**: https://www.kaggle.com/datasets/mateuszbuda/lgg-mri-segmentation
-- **IXI Dataset**: https://brain-development.org/ixi-dataset/
-- **FastMRI single-slice**: https://fastmri.org/
+- You can extract any axial slice as a PNG for experiments.
 
-
-You can extract any axial slice as a PNG for experiments.
+### Sample Results (After Quantization)
+<img width="1200" height="400" alt="image" src="https://github.com/user-attachments/assets/5c13491e-ca1a-4844-85ae-a831122f5597" />
 
 
 ## Running the Project
 
 python src/convert_to_onnx.py python src/quantize_model.py python src/inference.py
 
-## Docker
+## Docker (Reproduce Locally)
 docker build -t mri-quantized . docker run -p 8000:8000 mri-quantized
