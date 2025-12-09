@@ -22,7 +22,11 @@ Use any of the following:
 
 ## Running the Project
 
-python src/convert_to_onnx.py python src/quantize_model.py python src/inference.py
+python model/train.py python model/quantize.py python model/eval_quantized.py
+
+## Examine Results
+
+see quant_results directory
 
 ## Docker (Reproduce Locally)
 docker build -t mri-quantized . docker run -p 8000:8000 mri-quantized
