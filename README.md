@@ -1,5 +1,5 @@
 # Quantized MRI Segmentation
-A lightweight classical segmentation pipeline converted to ONNX and quantized to INT8 for deployment.
+A lightweight classical segmentation pipeline quantized to INT8 for deployment.
 
 
 ## Features
